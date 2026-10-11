@@ -990,18 +990,28 @@ bool Game::LoadCsBinary () {
   ystl::SmallArray<ystl::String> libs {};
   ConstructCsBinaryName (libs);
 
-  auto lib_check = [&] (ystl::StringRef mod, ystl::StringRef dll) {
-    // try to load gamedll
-    if (!game_lib_) {
-      ystl::logger.fatal ("Unable to load gamedll \"%s\". Exiting... (gamedir: %s)", dll, mod);
-    }
-    auto ent = game_lib_.resolve<EntityProto> ("trigger_random_unique");
+  auto lib_check = [&] (
+      ystl::StringRef mod,
+      ystl::StringRef dll,
+      ystl::StringRef path
+  ) {
+      if (!game_lib_) {
+          const auto error = ystl::SharedLibrary::last_error();
 
-    // detect regamedll by addon entity they provide
-    if (ent != nullptr) {
-      game_flags_ |= GameFlags::ReGameDLL;
-    }
-    return true;
+          ystl::logger.fatal (
+              "Unable to load gamedll \"%s\" from \"%s\" "
+              "(gamedir: %s, dlerror: %s)",
+              dll, path, mod, error
+          );
+      }
+
+      auto ent = game_lib_.resolve<EntityProto> ("trigger_random_unique");
+
+      if (ent != nullptr) {
+          game_flags_ |= GameFlags::ReGameDLL;
+      }
+
+      return true;
   };
 
   // search the libraries inside game dlls directory
@@ -1052,16 +1062,15 @@ bool Game::LoadCsBinary () {
       game_lib_.load (path);
 
       // verify dll is ok
-      return lib_check (modname, lib);
+      return lib_check (modname, lib, path);
     }
     else {
       game_lib_.load (path);
 
       // verify dll is ok
-      if (!lib_check (modname, lib)) {
+      if (!lib_check (modname, lib, path)) {
         return false;
       }
-
       // detect if we're running modern game
       auto entity = game_lib_.resolve<EntityProto> ("weapon_famas");
 
