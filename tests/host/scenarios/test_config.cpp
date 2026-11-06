@@ -877,7 +877,9 @@ TEST_CASE ("unit/config_tongue") {
 
   // ...entries load without a Lang wrapper, junk and hollow pairs drop out...
   ystl::String lang_v1 = "Greet {\n  raw Original {\n    Hello test\n    Second line\n  }\n";
-  lang_v1 += "  raw Translated {\n    Hola test\n    Segunda linea\n  }\n}\nScalarOops = ignored\n";
+  lang_v1 += "  raw Translated {\n    Hola test\n    Segunda linea\n  }\n}\n";
+  lang_v1 += "BlankLines {\n  raw Original {\n    First line\n\n    Second line\n  }\n";
+  lang_v1 += "  raw Translated {\n    Primera linea\n    Segunda linea\n  }\n}\nScalarOops = ignored\n";
   lang_v1 += "NoOrig {\n  raw Translated {\n    x\n  }\n}\n";
 
   WriteConfFile (ConfLangFile ("xx_lang"), lang_v1);
@@ -888,6 +890,9 @@ TEST_CASE ("unit/config_tongue") {
 
   conf.LoadLanguageConfig ();
   CHECK (ystl::StringRef (conf.Translate ("Hello test\nSecond line")) == "Hola test\nSegunda linea");
+
+  // ...empty lines from the original text are restored in the translation...
+  CHECK (ystl::StringRef (conf.Translate ("First line\n\nSecond line")) == "Primera linea\n\nSegunda linea");
 
   // ...identical content keeps the translations...
   conf.LoadLanguageConfig ();
